@@ -555,23 +555,26 @@
 
         async function initializeApp() {
             const loginBtn = document.querySelector('button[onclick="handleUnifiedLogin(event)"]');
+            
+            // BAGIAN INI KITA NONAKTIFKAN AGAR TIDAK MENGUBAH TAMPILAN SAAT REFRESH
+            /*
             if (loginBtn) {
                 loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan Database...';
                 loginBtn.disabled = true;
             }
-
+            */
+        
             try {
-                // UBAH BARIS IF INI KEMBALI SEPERTI SEMULA
                 if (GAS_API_URL === '' || GAS_API_URL === '') {
                     console.log("Menggunakan mode penyimpanan lokal/demo karena URL GAS belum diatur.");
                     loadLocalFallback();
                     finalizeInit();
                     return;
                 }
-
+        
                 const response = await fetch(GAS_API_URL);
                 const serverData = await response.json();
-
+        
                 if (serverData) {
                     Object.keys(serverData).forEach(key => {
                         if (serverData[key] && serverData[key].length > 0) {
