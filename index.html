@@ -132,7 +132,7 @@
     class="bg-slate-100 font-sans text-slate-800 flex flex-col min-h-screen selection:bg-brand-500 selection:text-white">
 
     <!-- LOGIN & REGISTER SCREEN -->
-    <div id="loginScreen"
+    <div id="loginScreen" style="display: none;"
         class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-brand-900 via-brand-800 to-slate-900 absolute inset-0 z-50">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in relative">
             <div class="p-8 text-center bg-slate-50 border-b border-slate-100">
@@ -554,24 +554,39 @@
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwHNUIQL261oUN8oniwr3GozpXNX4Jc_Thu6Wvf_7GuvRBC4uHShOI29ndkbTKMgbCX/exec';
 
         async function initializeApp() {
-            const loginBtn = document.querySelector('button[onclick="handleUnifiedLogin(event)"]');
-            if (loginBtn) {
-                loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan Database...';
-                loginBtn.disabled = true;
+            // 1. CEK STATUS LOGIN SECARA INSTAN
+            const savedUser = localStorage.getItem('siags_loggedInUser');
+            
+            // Ganti ID ini sesuai dengan ID di file HTML Anda
+            const viewLogin = document.getElementById('loginScreen'); 
+            const viewDashboard = document.getElementById('loginContainer'); 
+            const loginBtn = document.querySelector('loginForm[onclick="handleUnifiedLogin(event)"]');
+        
+            if (savedUser) {
+                // JIKA SUDAH LOGIN: Sembunyikan form login, langsung ke dashboard
+                if (viewLogin) viewLogin.style.display = 'none';
+                if (viewDashboard) viewDashboard.style.display = 'block'; // atau sesuai bawaan Anda
+            } else {
+                // JIKA BELUM LOGIN: Munculkan form login dan jalankan animasi tombol
+                if (viewLogin) viewLogin.style.display = 'block';
+                if (loginBtn) {
+                    loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan Database...';
+                    loginBtn.disabled = true;
+                }
             }
-
+        
+            // 2. LANJUTKAN PENGAMBILAN DATA (Kode asli Anda)
             try {
-                // UBAH BARIS IF INI KEMBALI SEPERTI SEMULA
                 if (GAS_API_URL === '' || GAS_API_URL === '') {
-                    console.log("Menggunakan mode penyimpanan lokal/demo karena URL GAS belum diatur.");
+                    console.log("Menggunakan mode lokal.");
                     loadLocalFallback();
                     finalizeInit();
                     return;
                 }
-
+        
                 const response = await fetch(GAS_API_URL);
                 const serverData = await response.json();
-
+        
                 if (serverData) {
                     Object.keys(serverData).forEach(key => {
                         if (serverData[key] && serverData[key].length > 0) {
@@ -583,13 +598,8 @@
                 }
                 finalizeInit();
             } catch (error) {
-                console.error("[Network Error] Gagal mengambil data dari API GAS:", error);
-                Swal.fire({
-                    title: 'Koneksi Server Gagal',
-                    text: 'Gagal terhubung ke Google Spreadsheet. Memuat data dari penyimpanan lokal.',
-                    icon: 'warning',
-                    confirmButtonColor: '#f59e0b'
-                });
+                // ... (Biarkan kode catch catch error Anda tetap sama seperti sebelumnya) ...
+                console.error("[Network Error]", error);
                 loadLocalFallback();
                 finalizeInit();
             }
