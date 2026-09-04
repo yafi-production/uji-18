@@ -143,7 +143,7 @@
             </div>
 
             <!-- LOGIN CONTAINER -->
-            <div id="loginContainer" class="p-8 space-y-6" style="display: none;">
+            <div id="loginContainer" class="p-8 space-y-6">
                 <!-- Toggle Tipe Login (3 Bagian) -->
                 <div class="flex p-1.5 bg-slate-100 rounded-xl gap-1">
                     <button type="button" id="tabLoginAdmin" onclick="setLoginRole('Admin')"
@@ -555,26 +555,23 @@
 
         async function initializeApp() {
             const loginBtn = document.querySelector('button[onclick="handleUnifiedLogin(event)"]');
-            
-            // BAGIAN INI KITA NONAKTIFKAN AGAR TIDAK MENGUBAH TAMPILAN SAAT REFRESH
-            /*
             if (loginBtn) {
                 loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan Database...';
                 loginBtn.disabled = true;
             }
-            */
-        
+
             try {
+                // UBAH BARIS IF INI KEMBALI SEPERTI SEMULA
                 if (GAS_API_URL === '' || GAS_API_URL === '') {
                     console.log("Menggunakan mode penyimpanan lokal/demo karena URL GAS belum diatur.");
                     loadLocalFallback();
                     finalizeInit();
                     return;
                 }
-        
+
                 const response = await fetch(GAS_API_URL);
                 const serverData = await response.json();
-        
+
                 if (serverData) {
                     Object.keys(serverData).forEach(key => {
                         if (serverData[key] && serverData[key].length > 0) {
@@ -1132,21 +1129,6 @@
                 if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
                     sidebar.classList.add('-translate-x-full');
                 }
-            }
-        });
-
-        // Tambahkan kode ini agar sistem langsung mengecek sesi login sebelum server merespons
-        document.addEventListener("DOMContentLoaded", () => {
-            const savedUser = localStorage.getItem('siags_loggedInUser');
-            
-            // Sesuaikan ID dengan pembungkus form login dan dashboard di HTML Anda
-            const loginSection = document.getElementById('login-section'); 
-            const dashboardSection = document.getElementById('dashboard-section'); 
-            
-            if (savedUser) {
-                // Jika sudah login, sembunyikan form login secepat kilat
-                if (loginSection) loginSection.style.display = 'none';
-                if (dashboardSection) dashboardSection.style.display = 'block';
             }
         });
 
@@ -2213,10 +2195,10 @@
             const onScanSuccess = (decodedText) => {
                 // 1. Bersihkan hasil scan dari spasi atau enter tersembunyi
                 const cleanScannedText = String(decodedText).trim().toLowerCase();
-                
+
                 // 2. Cocokkan dengan data di database yang juga sudah dibersihkan
                 const siswa = db.siswa.find(s => String(s.nisn).trim().toLowerCase() === cleanScannedText);
-                
+
                 if (siswa) {
                     playBeepSound();
                     setAbsenStatus(siswa.id, 'Hadir');
