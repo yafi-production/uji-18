@@ -556,11 +556,6 @@
         async function initializeApp() {
             // 1. CEK STATUS LOGIN SECARA INSTAN
             const savedUser = localStorage.getItem('siags_loggedInUser');
-            
-            // Ganti ID ini sesuai dengan ID di file HTML Anda
-            const viewLogin = document.getElementById('loginScreen'); 
-            const viewDashboard = document.getElementById('loginContainer'); 
-            const loginBtn = document.querySelector('loginForm[onclick="handleUnifiedLogin(event)"]');
         
             if (savedUser) {
                 // JIKA SUDAH LOGIN: Sembunyikan form login, langsung ke dashboard
