@@ -1025,12 +1025,24 @@
             if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
             const config = { fps: 10, qrbox: function(w, h) { let s = Math.floor(Math.min(w, h) * 0.6); return { width: s, height: s }; }};
             
+        function startQrScanner() {
+            document.getElementById('qrScannerModal').classList.remove('hidden');
+            const statusEl = document.getElementById('qrScanStatus'); 
+            statusEl.textContent = "Arahkan kamera ke QR Code Nama Siswa"; 
+            statusEl.classList.remove('text-rose-500');
+            
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
+            const config = { fps: 10, qrbox: function(w, h) { let s = Math.floor(Math.min(w, h) * 0.6); return { width: s, height: s }; }};
+            
             const onScanSuccess = (decodedText) => {
-                // 1. Bersihkan spasi berlebih dan jadikan huruf kecil semua dari hasil scan
-                const cleanScannedText = String(decodedText).trim().toLowerCase();
+                // 1. Fungsi normalisasi: Ubah huruf kecil & HAPUS semua spasi/simbol
+                const normalizeText = (text) => String(text).toLowerCase().replace(/[^a-z0-9]/g, '');
                 
-                // 2. Cocokkan dengan data nama di database yang juga dibersihkan dan dikecilkan hurufnya
-                const siswa = db.siswa.find(s => String(s.nama).trim().toLowerCase() === cleanScannedText);
+                // 2. Bersihkan hasil scan dari kamera
+                const cleanScannedText = normalizeText(decodedText);
+                
+                // 3. Cari siswa dengan membandingkan nama yang sudah dinormalisasi
+                const siswa = db.siswa.find(s => normalizeText(s.nama) === cleanScannedText);
                 
                 if (siswa) { 
                     playBeepSound(); 
