@@ -553,74 +553,47 @@
         // URL Web App GAS Anda. Kosongkan jika ingin mode lokal/demo sementara.
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwHNUIQL261oUN8oniwr3GozpXNX4Jc_Thu6Wvf_7GuvRBC4uHShOI29ndkbTKMgbCX/exec';
 
-        // 2. FUNGSI WAJIB UNTUK KEAMANAN (Mencegah XSS / script jahat masuk ke web)
-        function escapeHTML(str) {
-          if (str === null || str === undefined) return '';
-          return String(str).replace(/[&<>'"]/g, tag => ({
-              '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-          }[tag]));
-        }
-        
-        // 3. Fungsi Proses Login Terpusat
-        async function prosesLogin(email, password) {
-          // Pengecekan jika URL belum diganti
-          if (!GAS_URL.startsWith('http')) {
-            Swal.fire('Oops!', 'URL Google Apps Script belum disetting di kode program.', 'warning');
-            return;
-          }
-        
-          // Menampilkan popup loading
-          Swal.fire({
-            title: 'Memverifikasi Data...',
-            text: 'Mohon tunggu sebentar',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-          });
-        
-          try {
-            const response = await fetch(GAS_URL, {
-              method: 'POST',
-              // Header text/plain penting agar tidak kena block CORS Google Script
-              headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-              body: JSON.stringify({
-                action: 'login',
-                email: email,
-                password: password
-              })
-            });
-            
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-              // Simpan data user ke localStorage (PASSWORD SUDAH TIDAK ADA DI SINI)
-              localStorage.setItem('currentUser', JSON.stringify(result.userData));
-              
-              Swal.fire({
-                icon: 'success',
-                title: 'Login Berhasil!',
-                showConfirmButton: false,
-                timer: 1500
-              }).then(() => {
-                // Arahkan ke halaman utama/dashboard
-                window.location.href = 'dashboard.html'; 
-              });
-            } else {
-              Swal.fire('Gagal', result.message, 'error');
+        async function initializeApp() {
+            const loginBtn = document.querySelector('button[onclick="handleUnifiedLogin(event)"]');
+            if (loginBtn) {
+                loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan Database...';
+                loginBtn.disabled = true;
             }
-          } catch (error) {
-            console.error("Error:", error);
-            Swal.fire('Error', 'Gagal terhubung ke server. Periksa koneksi internet Anda.', 'error');
-          }
+
+            try {
+                // UBAH BARIS IF INI KEMBALI SEPERTI SEMULA
+                if (GAS_API_URL === '' || GAS_API_URL === '') {
+                    console.log("Menggunakan mode penyimpanan lokal/demo karena URL GAS belum diatur.");
+                    loadLocalFallback();
+                    finalizeInit();
+                    return;
+                }
+
+                const response = await fetch(GAS_API_URL);
+                const serverData = await response.json();
+
+                if (serverData) {
+                    Object.keys(serverData).forEach(key => {
+                        if (serverData[key] && serverData[key].length > 0) {
+                            if (key === 'pengaturan') db[key] = serverData[key][0] || DEFAULT_SETTINGS;
+                            else if (key === 'kolomNilai') db[key] = serverData[key][0] || {};
+                            else db[key] = serverData[key];
+                        }
+                    });
+                }
+                finalizeInit();
+            } catch (error) {
+                console.error("[Network Error] Gagal mengambil data dari API GAS:", error);
+                Swal.fire({
+                    title: 'Koneksi Server Gagal',
+                    text: 'Gagal terhubung ke Google Spreadsheet. Memuat data dari penyimpanan lokal.',
+                    icon: 'warning',
+                    confirmButtonColor: '#f59e0b'
+                });
+                loadLocalFallback();
+                finalizeInit();
+            }
         }
-        
-        // 4. Trigger saat tombol login atau form di-submit
-        document.getElementById('formLogin').addEventListener('submit', function(e) {
-          e.preventDefault(); // Mencegah halaman reload
-          const emailVal = document.getElementById('email').value;
-          const passVal = document.getElementById('password').value;
-          
-          prosesLogin(emailVal, passVal);
-        });
 
         function finalizeInit() {
             const loginBtn = document.querySelector('button[onclick="handleUnifiedLogin(event)"]');
