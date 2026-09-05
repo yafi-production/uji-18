@@ -551,47 +551,51 @@
         }
 
         // URL Web App GAS Anda. Kosongkan jika ingin mode lokal/demo sementara.
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwHNUIQL261oUN8oniwr3GozpXNX4Jc_Thu6Wvf_7GuvRBC4uHShOI29ndkbTKMgbCX/exec';
+        // Kode di Frontend (JavaScript HTML)
 
-        async function initializeApp() {
-            const loginBtn = document.querySelector('button[onclick="handleUnifiedLogin(event)"]');
-            if (loginBtn) {
-                loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghubungkan Database...';
-                loginBtn.disabled = true;
-            }
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwHNUIQL261oUN8oniwr3GozpXNX4Jc_Thu6Wvf_7GuvRBC4uHShOI29ndkbTKMgbCX/exec";
+
+        async function processLoginAttempt(email, password) {
+            // 1. Tampilkan loading spinner agar user tahu sistem sedang bekerja
+            tampilkanLoading();
 
             try {
-                // UBAH BARIS IF INI KEMBALI SEPERTI SEMULA
-                if (GAS_API_URL === '' || GAS_API_URL === '') {
-                    console.log("Menggunakan mode penyimpanan lokal/demo karena URL GAS belum diatur.");
-                    loadLocalFallback();
-                    finalizeInit();
-                    return;
-                }
-
-                const response = await fetch(GAS_API_URL);
-                const serverData = await response.json();
-
-                if (serverData) {
-                    Object.keys(serverData).forEach(key => {
-                        if (serverData[key] && serverData[key].length > 0) {
-                            if (key === 'pengaturan') db[key] = serverData[key][0] || DEFAULT_SETTINGS;
-                            else if (key === 'kolomNilai') db[key] = serverData[key][0] || {};
-                            else db[key] = serverData[key];
+                // 2. Kirim request HTTP POST ke backend GAS
+                const response = await fetch(GAS_API_URL, {
+                    method: "POST",
+                    // Gunakan text/plain untuk menghindari preflight CORS error di GAS
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({
+                        action: "login",
+                        payload: {
+                            email: email,
+                            password: password
                         }
-                    });
-                }
-                finalizeInit();
-            } catch (error) {
-                console.error("[Network Error] Gagal mengambil data dari API GAS:", error);
-                Swal.fire({
-                    title: 'Koneksi Server Gagal',
-                    text: 'Gagal terhubung ke Google Spreadsheet. Memuat data dari penyimpanan lokal.',
-                    icon: 'warning',
-                    confirmButtonColor: '#f59e0b'
+                    })
                 });
-                loadLocalFallback();
-                finalizeInit();
+
+                const result = await response.json();
+
+                // 3. Tangani Respons Backend
+                if (result.status === "success") {
+                    const userData = result.data;
+
+                    // Simpan token dan identitas dengan AMAN menggunakan sessionStorage
+                    // (Data hilang saat tab ditutup)
+                    sessionStorage.setItem("authToken", userData.token);
+                    sessionStorage.setItem("userRole", userData.role);
+                    sessionStorage.setItem("userName", userData.nama);
+
+                    // Arahkan ke dashboard
+                    renderDashboard();
+                } else {
+                    alert("Login Gagal: " + result.message);
+                }
+            } catch (error) {
+                alert("Terjadi kesalahan koneksi server.");
+                console.error(error);
+            } finally {
+                sembunyikanLoading();
             }
         }
 
@@ -627,27 +631,39 @@
             return db.kolomNilai[mapel];
         }
 
-        async function saveDb(key) {
-            try {
-                localStorage.setItem('siags_' + key, JSON.stringify(db[key]));
-            } catch (e) {
-                console.warn('Gagal menyimpan ke LocalStorage.');
+        // Frontend: Fungsi saat tombol "Simpan Nilai" diklik
+        async function simpanNilaiSiswa(idSiswa, mapel, nilaiBaru) {
+            const token = sessionStorage.getItem("authToken");
+            if (!token) {
+                alert("Sesi Anda telah habis. Silakan login kembali.");
+                return logout();
             }
 
-            if (GAS_API_URL === '' || GAS_API_URL === '') return;
-
             try {
-                // Menggunakan text/plain untuk menghindari CORS Preflight (OPTIONS request) pada GAS
-                await fetch(GAS_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8',
-                    },
-                    body: JSON.stringify({ key: key, data: db[key] })
+                const response = await fetch(GAS_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({
+                        action: "update_nilai",
+                        token: token, // Sertakan token otentikasi
+                        payload: {
+                            id_siswa: idSiswa,
+                            mata_pelajaran: mapel,
+                            nilai: nilaiBaru
+                        }
+                    })
                 });
-                console.log(`[Sync Success] Data '${key}' berhasil disinkronisasi ke server.`);
-            } catch (error) {
-                console.error(`[Sync Error] Gagal sinkronisasi data '${key}':`, error);
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    alert("Data berhasil disimpan!");
+                    // Refresh UI baris tersebut saja, tidak perlu reload seluruh web
+                } else {
+                    alert("Gagal menyimpan: " + result.message);
+                }
+            } catch (err) {
+                console.error(err);
             }
         }
 
